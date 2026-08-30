@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f7f8fb;
+  --panel: rgba(255,255,255,.82);
+  --panel-solid: #ffffff;
+  --text: #111827;
+  --muted: #667085;
+  --border: #e7e9ee;
+  --accent: #635bff;
+  --accent-strong: #4f46e5;
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg: #090b10;
+  --panel: rgba(18,21,29,.82);
+  --panel-solid: #12151d;
+  --text: #f5f7fb;
+  --muted: #9aa4b2;
+  --border: #252a35;
+  --accent: #8b85ff;
+  --accent-strong: #7770ff;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(99,91,255,.10), transparent 34rem),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+button, input { font: inherit; }
+
+::selection { background: rgba(99,91,255,.22); }
+
+@layer components {
+  .panel {
+    @apply rounded-3xl border backdrop-blur-xl;
+    border-color: var(--border);
+    background: var(--panel);
+    box-shadow: 0 1px 2px rgba(16,24,40,.03);
+  }
+
+  .muted { color: var(--muted); }
+
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-4;
+    --tw-ring-color: rgba(99,91,255,.18);
+  }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--border) 65%, transparent);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  animation: shimmer 1.5s infinite;
+}
