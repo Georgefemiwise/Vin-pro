@@ -1,4 +1,4 @@
-use client";
+"use client";
 
 import { Camera, ImagePlus, Loader2 } from "lucide-react";
 import { useRef } from "react";
