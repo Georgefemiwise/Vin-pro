@@ -1,4 +1,4 @@
-use client";
+"use client";
 
 import { CheckCircle2, Copy, ExternalLink, Share2 } from "lucide-react";
 import { useState } from "react";
