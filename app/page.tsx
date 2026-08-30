@@ -2,11 +2,11 @@
 
 import { AlertCircle, CarFront, ChevronRight, FileScan, Loader2, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import ScanButton from "@/components/ScanButton";
-import ThemeToggle from "@/components/ThemeToggle";
-import VinInput from "@/components/VinInput";
-import History, { HistoryItem } from "@/components/History";
-import Results from "@/components/Results";
+import ScanButton from "@./components/ScanButton";
+import ThemeToggle from "@./components/ThemeToggle";
+import VinInput from "@./components/VinInput";
+import History, { HistoryItem } from "@./components/History";
+import Results from "@./components/Results";
 import Skeleton from "@/components/Skeleton";
 import { decodeVin, resultToMap } from "@/lib/vpic";
 import { normalizeVin, validateVin } from "@/lib/vin";
