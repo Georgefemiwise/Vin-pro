@@ -13,8 +13,10 @@ import { normalizeVin, validateVin } from "@/lib/vin";
 import { recognizeVin } from "@/lib/ocr";
 
 const HISTORY_KEY = "vin-decoder-pro-history";
-const examples = ["1HGCM82633A004352", "1G1JC5244R7252367", "JH4KA9650MC000000"];
-
+const examples = [
+  "1HGCM82633A004352",
+  "1G1JC5244R7252367",
+];
 export default function Home() {
   const [vin, setVin] = useState("");
   const [data, setData] = useState<Record<string, string> | null>(null);
@@ -37,33 +39,95 @@ export default function Home() {
   }
 
   async function handleDecode(target = vin) {
-    const normalized = normalizeVin(target);
-    const validation = validateVin(normalized);
-    setVin(normalized);
-    setError("");
-    setData(null);
-    if (!validation.valid) {
-      setError(validation.message);
-      return;
-    }
+  const normalized = normalizeVin(target);
+  const validation = validateVin(normalized);
 
-    setLoading(true);
-    try {
-      const response = await decodeVin(normalized);
-      const map = resultToMap(response.Results);
-      if (map["Error Code"] && map["Error Code"] !== "0") {
-        throw new Error(map["Error Text"] || "NHTSA could not decode this VIN.");
-      }
-      setData(map);
-      const title = [map["Model Year"], map["Make"], map["Model"]].filter(Boolean).join(" ");
-      saveHistory([{ vin: normalized, title, timestamp: Date.now() }, ...history.filter((x) => x.vin !== normalized)]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to decode VIN. Check your connection and try again.");
-    } finally {
-      setLoading(false);
-    }
+  setVin(normalized);
+  setError("");
+  setData(null);
+
+  if (!validation.valid) {
+    setError(validation.message);
+    return;
   }
 
+  setLoading(true);
+
+  try {
+    console.log(
+      "[VIN Decoder] Decoding:",
+      normalized
+    );
+
+    const response = await decodeVin(normalized);
+
+    console.log(
+      "[VIN Decoder] Raw response:",
+      response
+    );
+
+    const map = resultToMap(
+      response.Results ?? []
+    );
+
+    console.log(
+      "[VIN Decoder] Final vehicle data:",
+      map
+    );
+
+    if (Object.keys(map).length === 0) {
+      throw new Error(
+        "NHTSA returned a response, but no vehicle fields contained data."
+      );
+    }
+
+    if (
+      map["Error Code"] &&
+      map["Error Code"] !== "0"
+    ) {
+      throw new Error(
+        map["Error Text"] ||
+          "NHTSA could not decode this VIN."
+      );
+    }
+
+    setData(map);
+
+    const title = [
+      map["Model Year"],
+      map["Make"],
+      map["Model"],
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const newHistoryItem = {
+      vin: normalized,
+      title: title || "Decoded vehicle",
+      timestamp: Date.now(),
+    };
+
+    saveHistory([
+      newHistoryItem,
+      ...history.filter(
+        (item) => item.vin !== normalized
+      ),
+    ]);
+  } catch (error) {
+    console.error(
+      "[VIN Decoder] Decode error:",
+      error
+    );
+
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Unable to decode VIN. Please check your connection and try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+    }
   async function handleScan(file: File) {
     setScanning(true);
     setOcrProgress(0);
