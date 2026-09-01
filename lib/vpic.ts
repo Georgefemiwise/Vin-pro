@@ -1,31 +1,36 @@
 export type VpicVariable = {
-  Variable: string;
-  Value: string | null;
+  Variable?: string;
+  Value?: string | null;
   ValueId?: string | null;
 };
 
 export type VpicResponse = {
-  Count: number;
-  Message: string;
-  Results: VpicVariable[];
+  Count?: number;
+  Message?: string;
   SearchCriteria?: string;
+  Results?: VpicVariable[];
 };
 
-const VPIC_BASE_URL =
-  "https://vpic.nhtsa.dot.gov/api/vehicles";
+const VPIC_URL =
+  "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues";
 
 export async function decodeVin(
   vin: string,
   signal?: AbortSignal
 ): Promise<VpicResponse> {
-  const normalizedVin = vin
+  const cleanVin = vin
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
 
+  if (cleanVin.length !== 17) {
+    throw new Error("VIN must contain exactly 17 characters.");
+  }
+
   const url =
-    `${VPIC_BASE_URL}/DecodeVinValues/` +
-    `${encodeURIComponent(normalizedVin)}` +
-    `?format=json`;
+    `${VPIC_URL}/${encodeURIComponent(cleanVin)}` +
+    "?format=json";
+
+  console.log("[VIN Decoder] Request:", url);
 
   const response = await fetch(url, {
     method: "GET",
@@ -38,41 +43,33 @@ export async function decodeVin(
 
   if (!response.ok) {
     throw new Error(
-      `NHTSA returned HTTP ${response.status}.`
+      `NHTSA request failed: HTTP ${response.status}`
     );
   }
 
-  const data: unknown = await response.json();
+  const data = await response.json();
 
-  if (!isVpicResponse(data)) {
+  console.log(
+    "[VIN Decoder] NHTSA response:",
+    data
+  );
+
+  if (
+    !data ||
+    !Array.isArray(data.Results)
+  ) {
     throw new Error(
-      "NHTSA returned an unexpected response format."
+      "NHTSA returned an invalid response."
     );
   }
 
-  if (!data.Results.length) {
+  if (data.Results.length === 0) {
     throw new Error(
-      "NHTSA returned no vehicle data for this VIN."
+      "NHTSA returned no results for this VIN."
     );
   }
 
   return data;
-}
-
-function isVpicResponse(
-  data: unknown
-): data is VpicResponse {
-  if (!data || typeof data !== "object") {
-    return false;
-  }
-
-  const value = data as Record<string, unknown>;
-
-  return (
-    typeof value.Count === "number" &&
-    typeof value.Message === "string" &&
-    Array.isArray(value.Results)
-  );
 }
 
 export function resultToMap(
@@ -80,29 +77,35 @@ export function resultToMap(
 ): Record<string, string> {
   const map: Record<string, string> = {};
 
-  for (const item of results) {
+  for (const result of results) {
+    const variable = result?.Variable;
+
+    if (!variable) {
+      continue;
+    }
+
+    const value = result.Value;
+
     if (
-      !item ||
-      typeof item.Variable !== "string"
+      value === null ||
+      value === undefined
     ) {
       continue;
     }
 
-    if (
-      item.Value === null ||
-      item.Value === undefined
-    ) {
+    const cleanValue = String(value).trim();
+
+    if (!cleanValue) {
       continue;
     }
 
-    const value = String(item.Value).trim();
-
-    if (!value) {
-      continue;
-    }
-
-    map[item.Variable] = value;
+    map[variable] = cleanValue;
   }
+
+  console.log(
+    "[VIN Decoder] Parsed fields:",
+    map
+  );
 
   return map;
 }
@@ -116,4 +119,4 @@ export function prettyLabel(
     .replace(/\bVin\b/gi, "VIN")
     .replace(/\bId\b/g, "ID")
     .trim();
-    }
+}
