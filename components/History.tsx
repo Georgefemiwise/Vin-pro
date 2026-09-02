@@ -1,28 +1,40 @@
 "use client";
 
-import { Clock3, Trash2 } from "lucide-react";
-
 export type HistoryItem = { vin: string; title: string; timestamp: number };
 
-export default function History({ items, onSelect, onClear }: { items: HistoryItem[]; onSelect: (vin: string) => void; onClear: () => void }) {
-  if (!items.length) return null;
+function timeAgo(ts: number): string {
+  const s = Math.round((Date.now() - ts) / 1000);
+  if (s < 60)   return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60)   return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24)   return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
+type Props = {
+  items: HistoryItem[];
+  onSelect: (vin: string) => void;
+  onClear: () => void;
+};
+
+export default function History({ items, onSelect, onClear }: Props) {
+  if (items.length === 0) return null;
   return (
-    <section className="mt-6">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold"><Clock3 size={16} /> Recent scans</div>
-        <button onClick={onClear} className="focus-ring rounded-lg p-1.5 text-xs muted hover:text-red-500" aria-label="Clear VIN history"><Trash2 size={14} /></button>
+    <div style={{ marginTop: 36 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>Recent lookups</span>
+        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onClear}>Clear</button>
       </div>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <button key={`${item.vin}-${item.timestamp}`} onClick={() => onSelect(item.vin)} className="focus-ring flex w-full items-center justify-between rounded-xl border p-3 text-left transition hover:-translate-y-0.5" style={{ borderColor: "var(--border)" }}>
-            <div className="min-w-0">
-              <div className="truncate font-mono text-xs font-semibold tracking-wider">{item.vin}</div>
-              <div className="mt-0.5 truncate text-xs muted">{item.title || "Decoded vehicle"}</div>
-            </div>
-            <span className="ml-3 shrink-0 text-[11px] muted">{new Date(item.timestamp).toLocaleDateString()}</span>
-          </button>
-        ))}
-      </div>
-    </section>
+      {items.map(item => (
+        <button key={item.vin} className="history-row" onClick={() => onSelect(item.vin)}>
+          <div>
+            <div className="history-label">{item.title || "Unknown vehicle"}</div>
+            <div className="history-vin">{item.vin}</div>
+          </div>
+          <div className="history-time">{timeAgo(item.timestamp)}</div>
+        </button>
+      ))}
+    </div>
   );
 }
