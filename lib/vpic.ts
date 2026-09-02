@@ -1,122 +1,38 @@
 export type VpicVariable = {
-  Variable?: string;
-  Value?: string | null;
+  Variable: string;
+  Value: string | null;
   ValueId?: string | null;
 };
 
 export type VpicResponse = {
-  Count?: number;
-  Message?: string;
+  Count: number;
+  Message: string;
+  Results: VpicVariable[];
   SearchCriteria?: string;
-  Results?: VpicVariable[];
 };
 
-const VPIC_URL =
-  "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues";
-
-export async function decodeVin(
-  vin: string,
-  signal?: AbortSignal
-): Promise<VpicResponse> {
-  const cleanVin = vin
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
-
-  if (cleanVin.length !== 17) {
-    throw new Error("VIN must contain exactly 17 characters.");
-  }
-
-  const url =
-    `${VPIC_URL}/${encodeURIComponent(cleanVin)}` +
-    "?format=json";
-
-  console.log("[VIN Decoder] Request:", url);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-    signal,
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `NHTSA request failed: HTTP ${response.status}`
-    );
-  }
-
-  const data = await response.json();
-
-  console.log(
-    "[VIN Decoder] NHTSA response:",
-    data
-  );
-
-  if (
-    !data ||
-    !Array.isArray(data.Results)
-  ) {
-    throw new Error(
-      "NHTSA returned an invalid response."
-    );
-  }
-
-  if (data.Results.length === 0) {
-    throw new Error(
-      "NHTSA returned no results for this VIN."
-    );
-  }
-
-  return data;
+/**
+ * FIX: was "DecodeVinValues" which returns a flat object per result
+ * (field names like "ModelYear", "EngineCylinders").
+ *
+ * "DecodeVin" returns the correct Variable/Value pair array where field
+ * names match what Results.tsx expects ("Model Year", "Engine Number of
+ * Cylinders", "Fuel Type - Primary", etc.).
+ */
+export async function decodeVin(vin: string, signal?: AbortSignal): Promise<VpicResponse> {
+  const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/${encodeURIComponent(vin)}?format=json`;
+  const res = await fetch(url, { signal, cache: "no-store" });
+  if (!res.ok) throw new Error(`NHTSA error: HTTP ${res.status}`);
+  const json = (await res.json()) as VpicResponse;
+  if (!json.Results?.length) throw new Error("No data returned for this VIN.");
+  return json;
 }
 
-export function resultToMap(
-  results: VpicVariable[]
-): Record<string, string> {
+export function resultToMap(results: VpicVariable[]): Record<string, string> {
   const map: Record<string, string> = {};
-
-  for (const result of results) {
-    const variable = result?.Variable;
-
-    if (!variable) {
-      continue;
-    }
-
-    const value = result.Value;
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      continue;
-    }
-
-    const cleanValue = String(value).trim();
-
-    if (!cleanValue) {
-      continue;
-    }
-
-    map[variable] = cleanValue;
+  for (const item of results) {
+    const v = String(item.Value ?? "").trim();
+    if (v && v !== "Not Applicable") map[item.Variable] = v;
   }
-
-  console.log(
-    "[VIN Decoder] Parsed fields:",
-    map
-  );
-
   return map;
-}
-
-export function prettyLabel(
-  variable: string
-): string {
-  return variable
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/\bVin\b/gi, "VIN")
-    .replace(/\bId\b/g, "ID")
-    .trim();
 }
