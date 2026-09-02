@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
+const config: NextConfig = {
+  webpack: (config) => {
+    // Required for tesseract.js worker compatibility
+    config.resolve.fallback = { ...config.resolve.fallback, fs: false, path: false };
+    return config;
+  },
 };
 
-export default nextConfig;
+export default config;
